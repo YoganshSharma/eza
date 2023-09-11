@@ -319,15 +319,10 @@ impl Git {
 /// “/vagrant/README.md”, prefixed by the workdir.
 #[cfg(unix)]
 fn reorient(path: &Path) -> PathBuf {
-    use std::env::current_dir;
-
-    // TODO: I’m not 100% on this func tbh
-    let path = match current_dir() {
-        Err(_)   => Path::new(".").join(path),
-        Ok(dir)  => dir.join(path),
+    lazy_static! {
+        static ref CWD: PathBuf = std::env::current_dir().unwrap();
     };
-
-    path.canonicalize().unwrap_or(path)
+    path.canonicalize().unwrap_or(CWD.with_file_name(path))
 }
 
 #[cfg(windows)]
