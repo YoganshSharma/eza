@@ -2,7 +2,8 @@ use crate::options::{flags, OptionsError, NumberSource};
 use crate::options::parser::MatchedFlags;
 use crate::options::vars::{self, Vars};
 
-use crate::output::file_name::{Options, Classify, UseIcons};
+
+use crate::output::file_name::{Options, Classify, ShowIcons, EmbedHyperlinks};
 
 
 impl Options {
@@ -10,7 +11,7 @@ impl Options {
         let classify = Classify::deduce(matches)?;
         let show_icons = UseIcons::deduce(matches, vars)?;
 
-        Ok(Self { classify, show_icons, is_a_tty })
+        Ok(Self { classify, show_icons, is_a_tty, embed_hyperlinks })
     }
 }
 
@@ -58,5 +59,14 @@ impl UseIcons {
             AlwaysOrAuto::Always => Ok(Self::Always(width)),
             AlwaysOrAuto::Automatic => Ok(Self::Automatic(width)),
         }
+    }
+}
+
+impl EmbedHyperlinks {
+    fn deduce(matches: &MatchedFlags<'_>) -> Result<Self, OptionsError> {
+        let flagged = matches.has(&flags::HYPERLINK)?;
+
+        if flagged { Ok(Self::On) }
+              else { Ok(Self::Off) }
     }
 }

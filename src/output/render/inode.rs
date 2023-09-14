@@ -1,4 +1,4 @@
-use ansi_term::Style;
+use ansiterm::Style;
 
 use crate::fs::fields as f;
 use crate::output::cell::TextCell;
@@ -16,13 +16,13 @@ pub mod test {
     use crate::output::cell::TextCell;
     use crate::fs::fields as f;
 
-    use ansi_term::Colour::*;
+    use ansiterm::Colour::*;
 
 
     #[test]
     fn blocklessness() {
-        let io = f::Inode(1414213);
+        let io = f::Inode(1_414_213);
         let expected = TextCell::paint_str(Cyan.underline(), "1414213");
-        assert_eq!(expected, io.render(Cyan.underline()).into());
+        assert_eq!(expected, io.render(Cyan.underline()));
     }
 }

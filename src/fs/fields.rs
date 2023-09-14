@@ -11,13 +11,8 @@
 //! The `output::details` module, among others, uses these types to render and
 //! display the information as formatted strings.
 
-// C-style `blkcnt_t` types don’t follow Rust’s rules!
 #![allow(non_camel_case_types)]
 #![allow(clippy::struct_excessive_bools)]
-
-
-/// The type of a file’s block count.
-pub type blkcnt_t = u64;
 
 /// The type of a file’s group ID.
 pub type gid_t = u32;
@@ -82,13 +77,27 @@ pub struct Permissions {
     pub setuid:         bool,
 }
 
+/// The file's `FileAttributes` field, available only on Windows.
+#[derive(Copy, Clone)]
+pub struct Attributes {
+    pub archive:         bool,
+    pub directory:       bool,
+    pub readonly:        bool,
+    pub hidden:          bool,
+    pub system:          bool,
+    pub reparse_point:   bool,
+}
+
 /// The three pieces of information that are displayed as a single column in
 /// the details view. These values are fused together to make the output a
 /// little more compressed.
 #[derive(Copy, Clone)]
 pub struct PermissionsPlus {
     pub file_type:   Type,
+    #[cfg(unix)]
     pub permissions: Permissions,
+    #[cfg(windows)]
+    pub attributes:  Attributes,
     pub xattrs:      bool,
 }
 
@@ -123,12 +132,13 @@ pub struct Links {
 pub struct Inode(pub ino_t);
 
 
-/// The number of blocks that a file takes up on the filesystem, if any.
+/// A file's size of allocated file system blocks.
 #[derive(Copy, Clone)]
-pub enum Blocks {
+#[cfg(unix)]
+pub enum Blocksize {
 
     /// This file has the given number of blocks.
-    Some(blkcnt_t),
+    Some(u64),
 
     /// This file isn’t of a type that can take up blocks.
     None,
@@ -162,7 +172,7 @@ pub enum Size {
     /// data is rarely useful — I can’t think of a time when I’ve seen it and
     /// learnt something. So we discard it and just output “-” instead.
     ///
-    /// See this answer for more: http://unix.stackexchange.com/a/68266
+    /// See this answer for more: <https://unix.stackexchange.com/a/68266>
     None,
 
     /// This file is a block or character device, so instead of a size, print
@@ -196,7 +206,7 @@ pub struct Time {
 /// A file’s status in a Git repository. Whether a file is in a repository or
 /// not is handled by the Git module, rather than having a “null” variant in
 /// this enum.
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum GitStatus {
 
     /// This file hasn’t changed since the last commit.
@@ -242,6 +252,39 @@ impl Default for Git {
         Self {
             staged: GitStatus::NotModified,
             unstaged: GitStatus::NotModified,
+        }
+    }
+}
+
+pub enum SecurityContextType<'a> {
+    SELinux(&'a str),
+    None
+}
+
+pub struct SecurityContext<'a> {
+    pub context: SecurityContextType<'a>,
+}
+
+#[allow(dead_code)]
+#[derive(PartialEq, Copy, Clone)]
+pub enum SubdirGitRepoStatus{
+    NoRepo,
+    GitClean,
+    GitDirty,
+    GitUnknown
+}
+
+#[derive(Clone)]
+pub struct SubdirGitRepo{
+    pub status : SubdirGitRepoStatus,
+    pub branch : Option<String>
+}
+
+impl Default for SubdirGitRepo{
+    fn default() -> Self {
+        Self{
+            status : SubdirGitRepoStatus::NoRepo,
+            branch : None
         }
     }
 }

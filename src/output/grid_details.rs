@@ -2,23 +2,23 @@
 
 use std::io::{self, Write};
 
-use ansi_term::ANSIStrings;
+use ansiterm::ANSIStrings;
 use term_grid as grid;
 
 use crate::fs::{Dir, File};
 use crate::fs::feature::git::GitCache;
-use crate::fs::feature::xattr::FileAttributes;
 use crate::fs::filter::FileFilter;
-use crate::output::cell::TextCell;
+use crate::output::cell::{TextCell, DisplayWidth};
 use crate::output::details::{Options as DetailsOptions, Row as DetailsRow, Render as DetailsRender};
 use crate::output::file_name::Options as FileStyle;
+use crate::output::file_name::{ShowIcons, EmbedHyperlinks};
 use crate::output::grid::Options as GridOptions;
 use crate::output::table::{Table, Row as TableRow, Options as TableOptions};
 use crate::output::tree::{TreeParams, TreeDepth};
 use crate::theme::Theme;
 
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct Options {
     pub grid: GridOptions,
     pub details: DetailsOptions,
@@ -39,7 +39,7 @@ impl Options {
 /// small directory of four files in four columns, the files just look spaced
 /// out and it’s harder to see what’s going on. So it can be enabled just for
 /// larger directory listings.
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum RowThreshold {
 
     /// Only use grid-details view if it would result in at least this many
@@ -150,15 +150,30 @@ impl<'a> Render<'a> {
         let (first_table, _) = self.make_table(options, &drender);
 
         let rows = self.files.iter()
-                       .map(|file| first_table.row_for_file(file, file_has_xattrs(file)))
+                       .map(|file| first_table.row_for_file(file, drender.show_xattr_hint(file)))
                        .collect::<Vec<_>>();
 
         let file_names = self.files.iter()
-                             .map(|file| self.file_style.for_file(file, self.theme).paint().promote())
-                             .collect::<Vec<_>>();
+            .map(|file| {
+                let filename = self.file_style.for_file(file, self.theme);
+                let contents = filename.paint();
+                let width = match (filename.options.embed_hyperlinks, filename.options.show_icons) {
+                    (EmbedHyperlinks::On, ShowIcons::On(spacing)) => filename.bare_width() + 1 + (spacing as usize),
+                    (EmbedHyperlinks::On, ShowIcons::Off) => filename.bare_width(),
+                    (EmbedHyperlinks::Off, _) => *contents.width(),
+                };
+
+                TextCell {
+                    contents,
+                    // with hyperlink escape sequences,
+                    // the actual *contents.width() is larger than actually needed, so we take only the filename
+                    width: DisplayWidth::from(width),
+                }
+            })
+            .collect::<Vec<_>>();
 
         let mut last_working_grid = self.make_grid(1, options, &file_names, rows.clone(), &drender);
-        
+
         if file_names.len() == 1 {
             return Some((last_working_grid, 1));
         }
@@ -176,7 +191,7 @@ impl<'a> Render<'a> {
             if the_grid_fits {
                 last_working_grid = grid;
             }
-            
+
             if !the_grid_fits || column_count == file_names.len() {
                 let last_column_count = if the_grid_fits { column_count } else { column_count - 1 };
                 // If we’ve figured out how many columns can fit in the user’s terminal,
@@ -202,7 +217,7 @@ impl<'a> Render<'a> {
             (None,    _)        => {/* Keep Git how it is */},
         }
 
-        let mut table = Table::new(options, self.git, &self.theme);
+        let mut table = Table::new(options, self.git, self.theme);
         let mut rows = Vec::new();
 
         if self.details.header {
@@ -228,7 +243,7 @@ impl<'a> Render<'a> {
         let original_height = divide_rounding_up(rows.len(), column_count);
         let height = divide_rounding_up(num_cells, column_count);
 
-        for (i, (file_name, row)) in file_names.iter().zip(rows.into_iter()).enumerate() {
+        for (i, (file_name, row)) in file_names.iter().zip(rows).enumerate() {
             let index = if self.grid.across {
                     i % column_count
                 }
@@ -272,7 +287,7 @@ impl<'a> Render<'a> {
         }
         else {
             for column in &columns {
-                for cell in column.iter() {
+                for cell in column {
                     let cell = grid::Cell {
                         contents: ANSIStrings(&cell.contents).to_string(),
                         width:    *cell.width,
@@ -296,12 +311,4 @@ fn divide_rounding_up(a: usize, b: usize) -> usize {
     }
 
     result
-}
-
-
-fn file_has_xattrs(file: &File<'_>) -> bool {
-    match file.path.attributes() {
-        Ok(attrs)  => ! attrs.is_empty(),
-        Err(_)     => false,
-    }
 }

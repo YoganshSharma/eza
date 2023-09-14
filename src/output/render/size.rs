@@ -1,4 +1,4 @@
-use ansi_term::Style;
+use ansiterm::Style;
 use locale::Numeric as NumericLocale;
 use number_prefix::Prefix;
 
@@ -46,7 +46,7 @@ impl f::Size {
         } else {
             numerics.format_int(n.round() as isize)
         };
-        
+
         TextCell {
             // symbol is guaranteed to be ASCII since unit prefixes are hardcoded.
             width: DisplayWidth::from(&*number) + symbol.len(),
@@ -95,8 +95,8 @@ pub mod test {
     use crate::fs::fields as f;
 
     use locale::Numeric as NumericLocale;
-    use ansi_term::Colour::*;
-    use ansi_term::Style;
+    use ansiterm::Colour::*;
+    use ansiterm::Style;
     use number_prefix::Prefix;
 
 
@@ -153,7 +153,7 @@ pub mod test {
 
     #[test]
     fn file_bytes() {
-        let directory = f::Size::Some(1048576);
+        let directory = f::Size::Some(1_048_576);
         let expected = TextCell {
             width: DisplayWidth::from(9),
             contents: vec![
