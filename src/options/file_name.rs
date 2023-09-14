@@ -9,9 +9,9 @@ use crate::output::file_name::{Options, Classify, ShowIcons, EmbedHyperlinks};
 impl Options {
     pub fn deduce<V: Vars>(matches: &MatchedFlags<'_>, vars: &V, is_a_tty: bool) -> Result<Self, OptionsError> {
         let classify = Classify::deduce(matches)?;
-        let show_icons = UseIcons::deduce(matches, vars)?;
-
-        Ok(Self { classify, show_icons, is_a_tty, embed_hyperlinks })
+        let show_icons = ShowIcons::deduce(matches, vars)?;
+        let embed_hyperlinks = EmbedHyperlinks::deduce(matches)?;
+        Ok(Self { classify, show_icons, embed_hyperlinks, is_a_tty })
     }
 }
 
@@ -24,7 +24,7 @@ impl Classify {
     }
 }
 
-impl UseIcons {
+impl ShowIcons {
     pub fn deduce<V: Vars>(matches: &MatchedFlags<'_>, vars: &V) -> Result<Self, OptionsError> {
         enum AlwaysOrAuto { Always, Automatic }
 
@@ -38,7 +38,7 @@ impl UseIcons {
                 Some("always") => AlwaysOrAuto::Always,
                 Some("auto") | Some("automatic") => AlwaysOrAuto::Automatic,
                 Some("never") => return Ok(Self::Never),
-                _ => return Err(OptionsError::BadArgument(&flags::COLOR, word.into()))
+                _ => return Err(OptionsError::BadArgument(&flags::ICONS, word.into()))
             }
             None => AlwaysOrAuto::Automatic,
         };
@@ -56,7 +56,7 @@ impl UseIcons {
         };
 
         match mode {
-            AlwaysOrAuto::Always => Ok(Self::Always(width)),
+            AlwaysOrAuto::Always => Ok(Self::Automatic(width)),
             AlwaysOrAuto::Automatic => Ok(Self::Automatic(width)),
         }
     }

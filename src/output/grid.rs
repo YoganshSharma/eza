@@ -45,8 +45,8 @@ impl<'a> Render<'a> {
             let filename = self.file_style.for_file(file, self.theme);
             let contents = filename.paint();
             let width = match (filename.options.embed_hyperlinks, filename.options.show_icons) {
-                (EmbedHyperlinks::On, ShowIcons::On(spacing)) => filename.bare_width() + 1 + (spacing as usize),
-                (EmbedHyperlinks::On, ShowIcons::Off) => filename.bare_width(),
+                (EmbedHyperlinks::On, ShowIcons::Automatic(spacing)) => filename.bare_width() + 1 + (spacing as usize),
+                (EmbedHyperlinks::On, ShowIcons::Never) => filename.bare_width(),
                 (EmbedHyperlinks::Off, _) => *contents.width(),
             };
 
