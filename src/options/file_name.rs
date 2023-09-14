@@ -2,16 +2,22 @@ use crate::options::{flags, OptionsError, NumberSource};
 use crate::options::parser::MatchedFlags;
 use crate::options::vars::{self, Vars};
 
-use crate::output::file_name::{Options, Classify, ShowIcons, EmbedHyperlinks};
+
+use crate::output::file_name::{Options, Classify, ShowIcons, QuoteStyle, EmbedHyperlinks};
+
 
 
 impl Options {
     pub fn deduce<V: Vars>(matches: &MatchedFlags<'_>, vars: &V) -> Result<Self, OptionsError> {
         let classify = Classify::deduce(matches)?;
         let show_icons = ShowIcons::deduce(matches, vars)?;
-        let embed_hyperlinks = EmbedHyperlinks::deduce(matches)?;
 
-        Ok(Self { classify, show_icons, embed_hyperlinks })
+        let quote_style = QuoteStyle::deduce(matches)?;
+        let embed_hyperlinks = EmbedHyperlinks::deduce(matches)?; 
+
+         Ok(Self { classify, show_icons, quote_style, embed_hyperlinks  })
+        
+
     }
 }
 
@@ -46,6 +52,18 @@ impl ShowIcons {
     }
 }
 
+
+impl QuoteStyle {
+    pub fn deduce(matches: &MatchedFlags<'_>) -> Result<Self, OptionsError> {
+        if matches.has(&flags::NO_QUOTES)? {
+            Ok(Self::NoQuotes)
+        }
+        else {
+            Ok(Self::QuoteSpaces)
+        }
+    }
+}
+
 impl EmbedHyperlinks {
     fn deduce(matches: &MatchedFlags<'_>) -> Result<Self, OptionsError> {
         let flagged = matches.has(&flags::HYPERLINK)?;
@@ -54,3 +72,4 @@ impl EmbedHyperlinks {
               else { Ok(Self::Off) }
     }
 }
+
