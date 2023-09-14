@@ -11,7 +11,7 @@ impl Options {
         let classify = Classify::deduce(matches)?;
         let show_icons = ShowIcons::deduce(matches, vars)?;
         let embed_hyperlinks = EmbedHyperlinks::deduce(matches)?;
-        Ok(Self { classify, show_icons, embed_hyperlinks, is_a_tty })
+        Ok(Self { classify,  is_a_tty, show_icons, embed_hyperlinks })
     }
 }
 
@@ -36,7 +36,7 @@ impl ShowIcons {
         let mode = match mode_opt {
             Some(word) => match word.to_str() {
                 Some("always") => AlwaysOrAuto::Always,
-                Some("auto") | Some("automatic") => AlwaysOrAuto::Automatic,
+                Some("auto" | "automatic") => AlwaysOrAuto::Automatic,
                 Some("never") => return Ok(Self::Never),
                 _ => return Err(OptionsError::BadArgument(&flags::ICONS, word.into()))
             }
